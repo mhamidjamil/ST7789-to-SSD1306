@@ -133,7 +133,7 @@ void setup()
     display.print("TO");
     display.print("SOAP MAKE");
     display.setTextSize(2);
-    display.setCursor(20, 25);
+    display.setCursor(20, 20);
     display.print("Enter Mode");
     display.display();
 
@@ -290,7 +290,7 @@ void start_cold_process()
     if (process == 10)
     {
         // Display  process started
-        display.setCursor(40, 25);
+        display.setCursor(15, 20);
         display.setTextSize(2);
         display.print("Moving Down");
         display.display();
@@ -318,7 +318,7 @@ void start_cold_process()
     if (process == 0 && lowerlimit == 1)
     {
         display.setTextSize(2);
-        display.setCursor(50, 25);
+        display.setCursor(30, 20);
         display.print("Moving Up");
         display.display();
         Serial.println("Moving up");
@@ -449,7 +449,7 @@ void start_hot_process()
             // Display moving up
             display_temp();
             display.setTextSize(2);
-            display.setCursor(10, 130);
+            display.setCursor(10, 15);
             display.print("Moving Up");
             move_up(); // make this turn right if motor moves the other way
         }
