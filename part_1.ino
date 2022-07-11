@@ -506,7 +506,7 @@ void display_temp()
 {
     if (old_temp != tempCelsius)
     {
-        display.fillRoundRect(10, 200, 240, 50, 8, ST77XX_BLACK);
+        display.fillRoundRect(10, 200, 240, 50, 8, 0);
         display.setCursor(10, 25);
         display.setTextSize(3);
         display.println(tempCelsius); // Print a text or value
