@@ -1,8 +1,15 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
+#include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_ST7789.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 // temperature sensor define
 #define ONE_WIRE_BUS 16
 OneWire oneWire(ONE_WIRE_BUS);
@@ -12,15 +19,15 @@ float tempFahrenheit; // temperature in Fahrenheit
 
 const int motorSpeedL = 14; // A0 Motor PWM for L
 const int motorSpeedR = 15; // A1 Motor PWM for L
-const int relay = 3;        // Relay 
-int display = 0;
+const int relay = 3;        // Relay
+// int display = 0;
 int process = 0;
 
-int upperswitch = 6; // Enter your upper switch pin here A3
+int upperswitch = 6;  // Enter your upper switch pin here A3
 int lowerswitch = 17; // Enter your lower switch pin here A4
 
 int cold_button = 7; // Enter your cold process button here A5
-int hot_button = 4;   // Enter your hot process button here
+int hot_button = 4;  // Enter your hot process button here
 
 int old_temp;
 // Debounce Cold_button(cold_button, 20);
@@ -30,17 +37,17 @@ bool cold = 0;
 bool hot = 0;
 bool lowerlimit = 0;
 
-// ST7789 TFT module connections
-//#define TFT_CS 10 // define chip select pin
-//#define TFT_DC 9  // define data/command pin
-//#define TFT_RST 8 // define reset pin, or set to -1 and connect to Arduino RESET pin
+// ST7789 display module connections
+//#define display_CS 10 // define chip select pin
+//#define display_DC 9  // define data/command pin
+//#define display_RST 8 // define reset pin, or set to -1 and connect to Arduino RESET pin
 
 unsigned long previousMillis = 0;
 unsigned long currentMillis = 0;
 const long interval = 5000;
 int counter = 0;
 
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+// Adafruit_ST7789 display = Adafruit_ST7789(display_CS, display_DC, display_RST);
 
 void setup()
 {
@@ -56,22 +63,23 @@ void setup()
     pinMode(hot_button, INPUT);
     pinMode(cold_button, INPUT);
 
-    tft.init(240, 240, SPI_MODE2);
-    tft.setRotation(1);
+    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+    { // Address 0x3D for 128x64
+        Serial.println(F("SSD1306 allocation failed"));
+        for (;;)
+            ;
+    }
 
     // Welcome Screen
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.setTextWrap(true);
-    tft.setTextSize(3);
+    delay(2000);
+    display.clearDisplay();
 
-    tft.setCursor(55, 40);
-    tft.print("WELCOME");
-    tft.setCursor(90, 90);
-    tft.print("TO");
-    tft.setCursor(30, 140);
-    tft.print("SOAP MAKE");
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 10);
+    // Display static text
+    display.println("Welcome to Soap make");
+    display.display();
 
     Serial.println("Welcome to Soap make");
     delay(2000);
@@ -79,54 +87,50 @@ void setup()
     {
         Serial.println("Upper limit not met. Moving up now");
         // Limit not met messeges
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setCursor(0, 0);
-        tft.setTextColor(ST77XX_WHITE);
-        tft.setTextWrap(true);
-        tft.setTextSize(2);
-
-        tft.setCursor(0, 20);
-        tft.print("Upper limit not met");
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        // Display static text
+        display.println("Upper limit not met");
+        display.display();
         while (digitalRead(upperswitch) == LOW)
         {
-            tft.setCursor(0, 60);
-            tft.print("Moving up");
+            display.setCursor(0, 10);
+            display.print("Moving up");
+            display.display();
             move_up(); // make this turn right if motor moves the other way
         }
         Serial.println("Head moved to upper limit. Ready to proceed");
-        tft.setCursor(0, 100);
-        tft.print("Upper limit met");
+        display.setCursor(0, 20);
+        display.display();
+        display.print("Upper limit met");
         Serial.println("Stopping motor");
         motor_stop();
     }
     // Standby for command
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.setTextWrap(true);
-
-    tft.setTextSize(4);
-    tft.setCursor(50, 50);
-    tft.print("Ready!");
-    tft.setTextSize(3);
-    //    tft.setCursor(25, 150);
-    //    tft.print("Enter Mode");
+    display.clearDisplay();
+    display.setTextSize(3);
+    display.setTextColor(WHITE);
+    display.setCursor(30, 20);
+    // Display static text
+    display.println("Ready");
+    display.display();
 
     delay(2000);
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.setTextWrap(true);
-
-    tft.setCursor(55, 40);
-    tft.print("WELCOME");
-    tft.setCursor(90, 90);
-    tft.print("TO");
-    tft.setCursor(30, 140);
-    tft.print("SOAP MAKE");
-    tft.setTextSize(2);
-    tft.setCursor(55, 200);
-    tft.print("Enter Mode");
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("Ready");
+    display.setCursor(10, 10);
+    display.print("WELCOME");
+    display.print("TO");
+    display.print("SOAP MAKE");
+    display.setTextSize(2);
+    display.setCursor(20, 25);
+    display.print("Enter Mode");
+    display.display();
 
     Serial.println("Welcome to Soap make");
     Serial.println("Exiting Setup now and entering loop. Standy by for commands..!");
@@ -167,19 +171,17 @@ void loop()
     case 1:
         // Cold process confirm
         // Cold process selected
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setCursor(0, 0);
-        tft.setTextColor(ST77XX_WHITE);
-        tft.setTextWrap(true);
-
-        tft.setTextSize(4);
-        tft.setCursor(70, 50);
-        tft.print("Cold");
-        tft.setCursor(45, 80);
-        tft.print("process");
-        tft.setTextSize(3);
-        tft.setCursor(10, 150);
-        tft.print(" Press again  to confirm");
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        display.println("Ready");
+        display.setCursor(10, 10);
+        display.print("Cold Process");
+        display.setTextSize(2);
+        display.setCursor(20, 10);
+        display.print("Press again  to confirm");
+        display.display();
 
         Serial.println("Are you sure to proceed Cold process?");
         Serial.println("Press again to confirm");
@@ -209,20 +211,17 @@ void loop()
 
     case 2:
         // hot process confirm
-
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setCursor(0, 0);
-        tft.setTextColor(ST77XX_WHITE);
-        tft.setTextWrap(true);
-
-        tft.setTextSize(4);
-        tft.setCursor(70, 50);
-        tft.print("Hot");
-        tft.setCursor(45, 80);
-        tft.print("process");
-        tft.setTextSize(3);
-        tft.setCursor(10, 150);
-        tft.print(" Press again  to confirm");
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        display.println("Ready");
+        display.setCursor(10, 10);
+        display.print("Hot Process");
+        display.setTextSize(2);
+        display.setCursor(20, 10);
+        display.print("Press again  to confirm");
+        display.display();
 
         Serial.print("Cold=");
         Serial.print(digitalRead(cold_button));
@@ -256,10 +255,10 @@ void sense_val()
 
     char string[10];                    // Create a character array of 10 characters
     dtostrf(tempCelsius, 3, 0, string); // (<variable>,<amount of digits we are going to use>,<amount of decimal digits>,<string name>)
-    // tft.setCursor(21, 125);             // Set position (x,y)
-    // tft.setTextColor(ST77XX_WHITE);     // Set color of text. First is the color of text and after is color of background
-    // tft.setTextSize(4);                 // Set text size. Goes from 0 (the smallest) to 20 (very big)
-    // tft.println(string);                // Print a text or value
+    // display.setCursor(21, 125);             // Set position (x,y)
+    // display.setTextColor(ST77XX_WHITE);     // Set color of text. First is the color of text and after is color of background
+    // display.setTextSize(4);                 // Set text size. Goes from 0 (the smallest) to 20 (very big)
+    // display.println(string);                // Print a text or value
 }
 
 void move_down()
@@ -277,22 +276,19 @@ void move_up()
 void start_cold_process()
 {
     // Cold process action
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.setTextWrap(true);
-
-    tft.setTextSize(3);
-    tft.setCursor(10, 30);
-    tft.print("Starting");
-    tft.setCursor(10, 60);
-    tft.print("Cold process");
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("Starting Cold process");
+    display.display();
     if (process == 10)
     {
         // Display  process started
-        tft.setTextSize(2);
-        tft.setCursor(10, 100);
-        tft.print("Moving Down");
+        display.setCursor(40, 25);
+        display.setTextSize(2);
+        display.print("Moving Down");
+        display.display();
         Serial.println("Moving down");
         while (digitalRead(lowerswitch) == LOW)
         {
@@ -316,9 +312,10 @@ void start_cold_process()
     Serial.println();
     if (process == 0 && lowerlimit == 1)
     {
-        tft.setTextSize(2);
-        tft.setCursor(10, 130);
-        tft.print("Moving Up");
+        display.setTextSize(2);
+        display.setCursor(50, 25);
+        display.print("Moving Up");
+        display.display();
         Serial.println("Moving up");
         while (digitalRead(upperswitch) == LOW)
         {
@@ -334,30 +331,29 @@ void start_cold_process()
         while (lowerlimit == 1)
         {
             motor_stop();
-            tft.setTextSize(2);
-            tft.setCursor(10, 160);
-            tft.print("Completed!");
+            display.setTextSize(2);
+            display.setCursor(60, 25);
+            display.print("Completed!");
+            display.display();
             Serial.println("Cold process completed");
             Serial.print("Process variable=");
             Serial.print(process);
             Serial.println();
             delay(3000);
 
-            // Standby for command
-            tft.fillScreen(ST77XX_BLACK);
-            tft.setCursor(0, 0);
-            tft.setTextColor(ST77XX_WHITE);
-            tft.setTextWrap(true);
-            tft.setTextSize(3);
-            tft.setCursor(55, 40);
-            tft.print("WELCOME");
-            tft.setCursor(90, 90);
-            tft.print("TO");
-            tft.setCursor(30, 140);
-            tft.print("SOAP MAKE");
-            tft.setTextSize(2);
-            tft.setCursor(55, 200);
-            tft.print("Enter Mode");
+            display.clearDisplay();
+            display.setTextSize(1);
+            display.setTextColor(WHITE);
+            display.setCursor(0, 0);
+            display.println("Ready");
+            display.setCursor(10, 10);
+            display.print("WELCOME");
+            display.print("TO");
+            display.print("SOAP MAKE");
+            display.setTextSize(2);
+            display.setCursor(20, 25);
+            display.print("Enter Mode");
+            display.display();
 
             Serial.println("Welcome to Soap make");
             Serial.println("Waiting for mode");
@@ -371,16 +367,13 @@ void start_cold_process()
 void start_hot_process()
 {
     // Hot processs action
-    tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.setTextWrap(true);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("Starting Hot process");
+    display.display();
 
-    tft.setTextSize(3);
-    tft.setCursor(10, 30);
-    tft.print("Starting");
-    tft.setCursor(10, 60);
-    tft.print("Hot process");
     Serial.println("Hot process work!!!!");
     Serial.print("Temperature=");
     Serial.print(tempCelsius);
@@ -424,9 +417,11 @@ void start_hot_process()
 
     if (process == 20 && hot_ready == 1)
     {
-        tft.setTextSize(2);
-        tft.setCursor(10, 100);
-        tft.print("Moving Down");
+        display.setTextSize(2);
+        display.setCursor(10, 20);
+        display.print("Moving Down");
+        display.display();
+
         Serial.println("Moving down");
         while (digitalRead(lowerswitch) == LOW)
         {
@@ -448,9 +443,9 @@ void start_hot_process()
         {
             // Display moving up
             display_temp();
-            tft.setTextSize(2);
-            tft.setCursor(10, 130);
-            tft.print("Moving Up");
+            display.setTextSize(2);
+            display.setCursor(10, 130);
+            display.print("Moving Up");
             move_up(); // make this turn right if motor moves the other way
         }
     }
@@ -465,27 +460,26 @@ void start_hot_process()
         hot_ready = 0;
         counter = 0;
         digitalWrite(relay, HIGH);
-        tft.setTextSize(2);
-        tft.setCursor(10, 160);
-        tft.print("Completed!");
+        display.setTextSize(2);
+        display.setCursor(10, 25);
+        display.print("Completed!");
+        display.display();
         Serial.println("Hot process completed");
         Serial.print("Process variable=");
         Serial.print(process);
         Serial.println();
         delay(3000);
 
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setCursor(0, 0);
-        tft.setTextColor(ST77XX_WHITE);
-        tft.setTextWrap(true);
-
-        tft.setTextSize(4);
-        tft.setCursor(50, 50);
-        tft.print("Ready!");
-        tft.setTextSize(3);
-        tft.setCursor(25, 150);
-        tft.print("Enter Mode");
-        Serial.println("Waiting for mode");
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        display.println("Ready");
+        display.setTextSize(2);
+        display.setCursor(20, 25);
+        display.print("Enter Mode");
+        display.display();
+         Serial.println("Waiting for mode");
     }
 }
 
@@ -512,13 +506,13 @@ void display_temp()
 {
     if (old_temp != tempCelsius)
     {
-        tft.fillRoundRect(10, 200, 240, 50, 8, ST77XX_BLACK);
-        tft.setCursor(10, 200);
-        tft.setTextSize(3);
-        tft.println(tempCelsius); // Print a text or value
-        tft.setCursor(120, 200);
-        tft.setTextSize(3); // Set text size. Goes from 0 (the smallest) to 20 (very big)
-        tft.println("C");
+        display.fillRoundRect(10, 200, 240, 50, 8, ST77XX_BLACK);
+        display.setCursor(10, 25);
+        display.setTextSize(3);
+        display.println(tempCelsius); // Print a text or value
+        display.setCursor(12, 28);
+        display.setTextSize(3); // Set text size. Goes from 0 (the smallest) to 20 (very big)
+        display.println("C");
         Serial.println(tempCelsius); // Print a text or value
         old_temp = tempCelsius;
     }
