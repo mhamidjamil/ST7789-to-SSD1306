@@ -1,4 +1,4 @@
-//Part_2
+// Part_2
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SPI.h>
@@ -55,6 +55,14 @@ int counter = 0;
 void setup()
 {
     Serial.begin(9600);
+    display.begin(SSD1306_SWITCHCAPVCC, DIRECCION_PANTALLA);
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(10, 10);
+    display.println("code_test_4");
+    display.display();
+    delay(3000);
     tempSensor.begin();
     pinMode(motorSpeedL, OUTPUT);
     pinMode(motorSpeedR, OUTPUT);
@@ -65,13 +73,6 @@ void setup()
     pinMode(upperswitch, INPUT);
     pinMode(hot_button, INPUT);
     pinMode(cold_button, INPUT);
-
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
-    { // Address 0x3D for 128x64
-        Serial.println(F("SSD1306 allocation failed"));
-        for (;;)
-            ;
-    }
 
     // Welcome Screen
     delay(2000);
@@ -287,7 +288,6 @@ void start_hot_process()
     display.display();
     digitalWrite(motorSpeedL, LOW);
     digitalWrite(relay, LOW);
-
 }
 
 void motor_stop()
