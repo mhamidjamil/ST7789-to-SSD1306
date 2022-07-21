@@ -57,6 +57,14 @@ void setup()
     Serial.begin(9600);
 
     display.begin(SSD1306_SWITCHCAPVCC, DIRECCION_PANTALLA);
+
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(10, 10);
+    display.println("code_test_4");
+    display.display();
+    delay(3000);
     tempSensor.begin();
     pinMode(motorSpeedL, OUTPUT);
     pinMode(motorSpeedR, OUTPUT);
@@ -81,7 +89,7 @@ void setup()
 
     display.setTextSize(1);
     display.setTextColor(WHITE);
-    display.setCursor(0, 10);
+    display.setCursor(10, 10);
     // Display static text
     display.println("Welcome to Soap make");
     display.display();
